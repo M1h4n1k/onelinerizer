@@ -31,13 +31,36 @@ def emulate(bytecode: dis.Bytecode):
             case 'RETURN_VALUE': stack.pop()
             case 'POP_TOP': stack.pop()
             case 'PUSH_NULL': stack.append(None)
+            case 'BUILD_LIST': stack.append(list())
+            case 'BUILD_TUPLE': stack.append(tuple())
+            case 'BUILD_CONST_KEY_MAP':
+                keys = stack.pop()
+                values = [stack.pop() for _ in range(len(keys))][::-1]
+                stack.append(dict(zip(keys, values)))
+
+            case 'IMPORT_NAME':
+                co_varnames[instr.argval] = __import__(instr.argval)
+                instr_i += 1
+
+            case 'LIST_EXTEND':
+                seq = stack.pop()
+                list.extend(stack[-instr.argval], seq)
+            case 'BINARY_SUBSCR':
+                ind = stack.pop()
+                stack.append(stack.pop()[ind])
+
+            case 'UNPACK_SEQUENCE':
+                seq = stack.pop()
+                for el in seq[::-1]:
+                    stack.append(el)
 
             case 'LOAD_CONST':
                 stack.append(instr.argval)
             case 'STORE_FAST':
                 co_varnames[instr.argval] = stack.pop()
             case 'LOAD_FAST':
-                if co_varnames.get(instr.argval) is None: raise ValueError(f'Variable {instr.argval} not defined')
+                if co_varnames.get(instr.argval) is None:
+                    raise ValueError(f'Variable {instr.argval} not defined')
                 stack.append(co_varnames[instr.argval])
             case 'STORE_NAME':
                 co_varnames[instr.argval] = stack.pop()
@@ -48,7 +71,7 @@ def emulate(bytecode: dis.Bytecode):
             case 'LOAD_METHOD':
                 stack.append(getattr(stack.pop(), instr.argval))  # co_names.get(line.argval)))
             case 'CALL':
-                args = [stack.pop() for _ in range(instr.argval)]
+                args = [stack.pop() for _ in range(instr.argval)][::-1]
                 func = stack.pop()
                 stack.append(func(*args))
 
@@ -67,7 +90,7 @@ def emulate(bytecode: dis.Bytecode):
             case 'BINARY_OP':
                 s = stack.pop()  # for some reason operands are reversed
                 f = stack.pop()
-                match instr.argrepr:
+                match instr.argrepr.replace('=', ''):
                     case '+':
                         stack.append(f + s)
                     case '-':
@@ -78,6 +101,8 @@ def emulate(bytecode: dis.Bytecode):
                         stack.append(f / s)
                     case '%':
                         stack.append(f % s)
+                    case '//':
+                        stack.append(f // s)
                     case _:
                         raise ValueError(f'Unknown binary operation: {instr.argrepr}')
 
