@@ -167,7 +167,7 @@ def linerize(bytecode: dis.Bytecode):
 
 
 if __name__ == '__main__':
-    from samples.simple_game import main as sample
+    from samples.sum import main as sample
 
     dis.dis(sample)
     print()
