@@ -47,6 +47,14 @@ class InstructionABC(ABC):
         """
         pass
 
+    @abstractmethod
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        """
+        Method to execute the instruction on onelinerizer
+        :return: tuple of strings to append to the start and end
+        """
+        pass
+
 
 class PopTop(InstructionABC):
     NAME = 'POP_TOP'
@@ -56,6 +64,9 @@ class PopTop(InstructionABC):
 
     def execute_decompiler(self) -> str:
         return f'{self.stack.pop()}'
+
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        return self.stack.pop() + ', ', ''
 
 
 class Return(InstructionABC):
@@ -67,12 +78,15 @@ class Return(InstructionABC):
     def execute_decompiler(self) -> str:
         return f'return {self.stack.pop()}'
 
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        return str(self.stack.pop()) + ', ', ''
 
 
 class Resume(InstructionABC):
     NAME = 'RESUME'
     def execute_vm(self): pass
     def execute_decompiler(self) -> str: return ''
+    def execute_onelinerizer(self) -> tuple[str, str]: return '', ''
 
 
 class Nop(InstructionABC):
@@ -85,6 +99,7 @@ class Precall(InstructionABC):
     NAME = 'PRECALL'
     def execute_vm(self): pass
     def execute_decompiler(self) -> str: return ''
+    def execute_onelinerizer(self) -> tuple[str, str]: return '', ''
 
 
 class BuildList(InstructionABC):
@@ -97,6 +112,10 @@ class BuildList(InstructionABC):
         self.execute_vm()
         return ''
 
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        self.execute_vm()
+        return '', ''
+
 
 class BuildTuple(InstructionABC):
     NAME = 'BUILD_TUPLE'
@@ -107,6 +126,10 @@ class BuildTuple(InstructionABC):
     def execute_decompiler(self) -> str:
         self.execute_vm()
         return ''
+
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        self.execute_vm()
+        return '', ''
 
 
 class BuildConstKeyMap(InstructionABC):
@@ -125,6 +148,14 @@ class BuildConstKeyMap(InstructionABC):
         )
         return ''
 
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        keys = self.stack.pop()
+        values = [self.stack.pop() for _ in range(len(keys))][::-1]
+        self.stack.append(
+            '{' + ','.join(f'{k}: {v}' for k, v in zip(keys, values)) + '}'
+        )
+        return '', ''
+
 
 class ImportName(InstructionABC):
     NAME = 'IMPORT_NAME'
@@ -135,6 +166,10 @@ class ImportName(InstructionABC):
     def execute_decompiler(self) -> str:
         self.index += 1
         return f'import {self.instr.argval}'
+
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        self.stack.append(f'__import__("{self.instr.argval}")')
+        return '', ''
 
 
 class ListExtend(InstructionABC):
@@ -147,6 +182,10 @@ class ListExtend(InstructionABC):
     def execute_decompiler(self) -> str:
         self.execute_vm()
         return ''
+
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        self.execute_vm()
+        return '', ''
 
 
 class BinarySubscr(InstructionABC):
@@ -161,6 +200,10 @@ class BinarySubscr(InstructionABC):
         self.stack.append(f'{self.stack.pop()}[{ind}]')
         return ''
 
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        self.execute_decompiler()
+        return '', ''
+
 
 class UnpackSequence(InstructionABC):
     NAME = 'UNPACK_SEQUENCE'
@@ -173,6 +216,10 @@ class UnpackSequence(InstructionABC):
     def execute_decompiler(self) -> str:
         self.execute_vm()
         return ''
+
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        self.execute_vm()
+        return '', ''
 
 
 class LoadConst(InstructionABC):
@@ -188,6 +235,13 @@ class LoadConst(InstructionABC):
             self.stack.append(self.instr.argrepr)
         return ''
 
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        if type(self.instr.argval) in (list, tuple):
+            self.stack.append(self.instr.argval)
+        else:
+            self.stack.append(self.instr.argrepr)
+        return '', ''
+
 
 class StoreFast(InstructionABC):
     NAME = 'STORE_FAST'
@@ -197,6 +251,12 @@ class StoreFast(InstructionABC):
 
     def execute_decompiler(self) -> str:
         return f'{self.instr.argval} = {self.stack.pop()}'
+
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        return (
+            f'(lambda {self.instr.argval}: [',
+            f'][-1])({self.stack.pop()})'
+        )
 
 
 class LoadFast(InstructionABC):
@@ -211,6 +271,10 @@ class LoadFast(InstructionABC):
         self.stack.append(self.instr.argval)
         return ''
 
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        self.stack.append(self.instr.argval)
+        return '', ''
+
 
 class StoreName(InstructionABC):
     NAME = 'STORE_NAME'
@@ -218,8 +282,8 @@ class StoreName(InstructionABC):
     def execute_vm(self):
         self.co_varnames[self.instr.argval] = self.stack.pop()
 
-    def execute_decompiler(self) -> str:
-        raise NotImplementedError
+    def execute_decompiler(self) -> str: raise NotImplementedError
+    def execute_onelinerizer(self) -> tuple[str, str]: raise NotImplementedError
 
 
 class LoadName(InstructionABC):
@@ -228,8 +292,8 @@ class LoadName(InstructionABC):
     def execute_vm(self):
         self.stack.append(self.co_varnames[self.instr.argval])
 
-    def execute_decompiler(self) -> str:
-        raise NotImplementedError
+    def execute_decompiler(self) -> str: raise NotImplementedError
+    def execute_onelinerizer(self) -> tuple[str, str]: raise NotImplementedError
 
 
 class LoadGlobal(InstructionABC):
@@ -238,11 +302,15 @@ class LoadGlobal(InstructionABC):
     def execute_vm(self):
         # print(__builtins__.get('input'))
         # self.stack.append(getattr(__builtins__, self.instr.argval))
-        self.stack.append(__builtins__.get(self.instr.argval))
+        self.stack.append(__builtins__.get(self.instr.argval))  # idk
 
     def execute_decompiler(self) -> str:
         self.stack.append(self.instr.argval)
         return ''
+
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        self.execute_decompiler()
+        return '', ''
 
 
 class LoadMethod(InstructionABC):
@@ -254,6 +322,10 @@ class LoadMethod(InstructionABC):
     def execute_decompiler(self) -> str:
         self.stack.append(f'{self.stack.pop()}.{self.instr.argval}')
         return ''
+
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        self.execute_decompiler()
+        return '', ''
 
 
 class Call(InstructionABC):
@@ -270,6 +342,12 @@ class Call(InstructionABC):
         self.stack.append(f'{func}({", ".join(map(str, args))})')
         return ''
 
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        args = [self.stack.pop() for _ in range(self.instr.argval)][::-1]
+        func = self.stack.pop()
+        self.stack.append(f'{func}({", ".join(map(str, args))})')
+        return '', ''
+
 
 class GetIter(InstructionABC):
     NAME = 'GET_ITER'
@@ -280,6 +358,10 @@ class GetIter(InstructionABC):
     def execute_decompiler(self) -> str:
         self.stack.append(f'iter({self.stack.pop()})')
         return ''
+
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        self.execute_decompiler()
+        return '', ''
 
 
 class ForIter(InstructionABC):
@@ -292,20 +374,30 @@ class ForIter(InstructionABC):
             self.stack.pop()
             self.index = self.instr.argval // 2
 
+    def unpack_sequence(self, next_instr) -> str:
+        iter_name = []
+        for _ in range(next_instr.argval):
+            next_instr = self.next_instrs[self.index]
+            self.index += 1
+            iter_name.append(next_instr.argval)
+        return ', '.join(iter_name)
+
+    def get_iter_name(self, next_instr) -> str:
+        if next_instr.opname == 'UNPACK_SEQUENCE':
+            return self.unpack_sequence(next_instr)
+        return next_instr.argval
+
     def execute_decompiler(self) -> str:
         next_instr = self.next_instrs[self.index]
         self.index += 1
-        if next_instr.opname == 'UNPACK_SEQUENCE':
-            iter_name = []
-            for _ in range(next_instr.argval):
-                next_instr = self.next_instrs[self.index]
-                self.index += 1
-                iter_name.append(next_instr.argval)
-            iter_name = ', '.join(iter_name)
-        else:
-            iter_name = next_instr.argval
         self.indents.append(self.instr.argval)
-        return f'for {iter_name} in {self.stack.pop()}:'
+        return f'for {self.get_iter_name(next_instr)} in {self.stack.pop()}:'
+
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        next_instr = self.next_instrs[self.index]
+        self.index += 1
+        self.indents.append(self.instr.argval)
+        return f'[[', f'][-1] for {self.get_iter_name(next_instr)} in {self.stack.pop()}][-1]'
 
 
 class JumpBackward(InstructionABC):
@@ -314,8 +406,8 @@ class JumpBackward(InstructionABC):
     def execute_vm(self):
         self.index = self.instr.argval // 2
 
-    def execute_decompiler(self) -> str:
-        return ''
+    def execute_decompiler(self) -> str: return ''
+    def execute_onelinerizer(self) -> tuple[str, str]: return '', ''
 
 
 class JumpForward(InstructionABC):
@@ -324,8 +416,8 @@ class JumpForward(InstructionABC):
     def execute_vm(self):
         self.index = self.instr.argval // 2
 
-    def execute_decompiler(self) -> str:
-        return ''
+    def execute_decompiler(self) -> str: return ''
+    def execute_onelinerizer(self) -> tuple[str, str]: return '', ''
 
 
 class SupElse(InstructionABC):
@@ -341,67 +433,76 @@ class SupElse(InstructionABC):
         self.indents.append(self.instr.argval)
         return 'else:'
 
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        raise NotImplementedError
+        # return '][-1]), False: (lambda: [', ''
+
 
 class BinaryOp(InstructionABC):
     NAME = 'BINARY_OP'
 
-    def execute_vm(self):
-        s = self.stack.pop()  # for some reason operands are reversed
-        f = self.stack.pop()
+    f = None
+    s = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.s = self.stack.pop()  # for some reason operands are reversed
+        self.f = self.stack.pop()
 
         if self.instr.argrepr.replace('=', '') not in ('+', '-', '*', '/', '%', '//'):
             raise ValueError(f'Unknown binary operation: {self.instr.argrepr}')
 
+    def execute_vm(self):
         mmap = {
-            '+': f + s,
-            '-': f - s,
-            '*': f * s,
-            '/': f / s,
-            '%': f % s,
-            '//': f // s
+            '+': self.f + self.s,
+            '-': self.f - self.s,
+            '*': self.f * self.s,
+            '/': self.f / self.s,
+            '%': self.f % self.s,
+            '//': self.f // self.s
         }
         self.stack.append(mmap[self.instr.argrepr.replace('=', '')])
 
     def execute_decompiler(self) -> str:
-        s = self.stack.pop()  # for some reason operands are reversed
-        f = self.stack.pop()
-
-        if self.instr.argrepr.replace('=', '') not in ('+', '-', '*', '/', '%', '//'):
-            raise ValueError(f'Unknown binary operation: {self.instr.argrepr}')
-
-        self.stack.append(f'({f} {self.instr.argrepr} {s})')
+        self.stack.append(f'({self.f} {self.instr.argrepr.replace("=", "")} {self.s})')
         return ''
+
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        self.execute_decompiler()
+        return '', ''
 
 
 class CompareOp(InstructionABC):
     NAME = 'COMPARE_OP'
 
-    def execute_vm(self):
-        s = self.stack.pop()  # for some reason operands are reversed
-        f = self.stack.pop()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.s = self.stack.pop()  # for some reason operands are reversed
+        self.f = self.stack.pop()
 
         if self.instr.argrepr not in ('==', '!=', '<', '>', '<=', '>='):
             raise ValueError(f'Unknown compare operation: {self.instr.argrepr}')
 
+    def execute_vm(self):
         mmap = {
-            '==': f == s,
-            '!=': f != s,
-            '<': f < s,
-            '>': f > s,
-            '<=': f <= s,
-            '>=': f >= s
+            '==': self.f == self.s,
+            '!=': self.f != self.s,
+            '<': self.f < self.s,
+            '>': self.f > self.s,
+            '<=': self.f <= self.s,
+            '>=': self.f >= self.s
         }
         self.stack.append(mmap[self.instr.argrepr])
 
     def execute_decompiler(self) -> str:
-        s = self.stack.pop()  # for some reason operands are reversed
-        f = self.stack.pop()
-
-        if self.instr.argrepr not in ('==', '!=', '<', '>', '<=', '>='):
-            raise ValueError(f'Unknown compare operation: {self.instr.argrepr}')
-
-        self.stack.append(f'{f} {self.instr.argrepr} {s}')
+        self.stack.append(f'{self.f} {self.instr.argrepr} {self.s}')
         return ''
+
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        self.execute_decompiler()
+        return '', ''
 
 
 class PopJumpForwardIfFalse(InstructionABC):
@@ -415,6 +516,12 @@ class PopJumpForwardIfFalse(InstructionABC):
         self.indents.append(self.instr.argval)
         return f'if {self.stack.pop()}:'
 
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        return (
+            '{True: (lambda: [',
+            f'][-1])}}.get({self.stack.pop()}, lambda: None)()'
+        )
+
 
 class PopJumpForwardIfTrue(InstructionABC):
     NAME = 'POP_JUMP_FORWARD_IF_TRUE'
@@ -426,6 +533,12 @@ class PopJumpForwardIfTrue(InstructionABC):
     def execute_decompiler(self) -> str:
         self.indents.append(self.instr.argval)
         return f'if not {self.stack.pop()}:'
+
+    def execute_onelinerizer(self) -> tuple[str, str]:
+        return (
+            '{True: (lambda: [',
+            f'][-1])}}.get(not {self.stack.pop()}, lambda: None)()'
+        )
 
 
 opcodes_map: dict[str: InstructionABC] = {
