@@ -1,3 +1,7 @@
+# Problem: I am simultaneously working on virtual machine, decompiler and onelinerizer
+# and I want to keep all opcodes synced and in case if I found a bug in one of them, I want to fix it in all of them
+# because usually bugs are caused by misunderstanding of the documentation, and it is general for all "projects".
+# Moreover, opcodes in all "projects" sometimes share the similar logic so it's also cool for the sake of reusing code
 from abc import ABC, abstractmethod
 from dis import Instruction
 
