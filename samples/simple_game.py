@@ -2,11 +2,8 @@
 
 def main():
     import random
-
     guesses_made = 0
-
     name = input('Hello! What is your name?\n')
-
     number = random.randint(1, 20)
     print('Well, {0}, I am thinking of a number between 1 and 20.'.format(name))
     print(number)
@@ -33,12 +30,5 @@ def main():
 
 
 if __name__ == '__main__':
-
-    # {
-    #     True: lambda: [print(123)],
-    #     False: lambda: [print('else123')]
-    # }[3 % 2 == 0]()
-
-    # [print(123)] if 3 % 2 == 0 else [print('else')]
     main()
 
