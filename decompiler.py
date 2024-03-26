@@ -1,3 +1,7 @@
+"""
+Decompiler from Python bytecode
+"""
+
 import dis
 from opcodes import opcodes_map
 

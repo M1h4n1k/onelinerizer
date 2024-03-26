@@ -1,3 +1,6 @@
+"""
+Obfuscates the code and makes it a one-liner
+"""
 import dis
 from opcodes import opcodes_map
 
