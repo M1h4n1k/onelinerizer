@@ -1,35 +1,44 @@
 
 
 def main():
-    # def add(a, b):
-    #     return a + b
-    # print((lambda a: (lambda b:
-    #                   [
-    #                       print(a + b),
-    #                       a + b * 2
-    #                   ][1]
-    #                   )(2))(1))
-    # return (lambda a: (lambda b: a + b)(2))(2)
-    a = 1
-    b = 2
-    print(a + b * 2)
-    return a + b
+    import random
 
-    # for i in range(10):
-    #     if i % 2 == 0:
-    #         print(i)
-    #     else:
-    #         print('else')
-    #     print('ok')
-    #
-    # if 3 % 2 == 0:
-    #     print(123)
-    # else:
-    #     print('else')
-    #
-    # return None
+    guesses_made = 0
+
+    name = input('Hello! What is your name?\n')
+
+    number = random.randint(1, 20)
+    print('Well, {0}, I am thinking of a number between 1 and 20.'.format(name))
+    print(number)
+    guess = 0
+
+    for _ in range(6):
+
+        guess = int(input('Take a guess: '))
+
+        guesses_made += 1
+
+        if guess < number:
+            print('Your guess is too low.')
+        elif guess > number:
+            print('Your guess is too high.')
+        else:
+            print('Good job, {0}! You guessed my number in {1} guesses!'.format(name, guesses_made))
+        print()
+
+    if guess != number:
+        print('Nope. The number I was thinking of was {0}'.format(number))
+
+    return
 
 
 if __name__ == '__main__':
+
+    # {
+    #     True: lambda: [print(123)],
+    #     False: lambda: [print('else123')]
+    # }[3 % 2 == 0]()
+
+    # [print(123)] if 3 % 2 == 0 else [print('else')]
     main()
 

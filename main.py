@@ -8,7 +8,6 @@ class Indent:
     ending: str
 
 
-
 def linerize(bytecode: dis.Bytecode):
     stack_names = []  # names of variables and functions used
 
@@ -24,7 +23,8 @@ def linerize(bytecode: dis.Bytecode):
         instr = instructions[instr_i]
         instr_i += 1
 
-        # indents.sort(reverse=True, key=lambda x: x.line_to)  # not cool for large number of elems, but I'm sure noone has more than 6-7 indents
+        # indents.sort(reverse=True, key=lambda x: x.line_to)
+        # not cool for large number of elems, but I'm sure noone has more than 6-7 indents
         while len(indents) != 0 and instr.offset >= indents[-1].line_to:
             end = indents.pop().ending + end
 
